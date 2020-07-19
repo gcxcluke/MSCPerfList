@@ -1,0 +1,22 @@
+body {
+  background-color: #dcdcdc;
+}
+
+table {
+   max-width: 95%;
+   border: 10px solid #0000FF;
+   text-align: center
+ }
+
+th {
+  background-color: #000000;
+    color: #ffffff;
+    width: 100px;
+    text-align: center;
+}
+
+td {
+  background-color: #dcdcdc;
+  width: 100px;
+  text-align: center;
+}

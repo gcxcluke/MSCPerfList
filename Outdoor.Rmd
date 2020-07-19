@@ -1,0 +1,434 @@
+---
+title: "Mid-South Conference"
+author: "Track & Field"
+date: "Last Update: 7/18/2020"
+output:
+  html_document: 
+    toc: TRUE
+    toc_float: TRUE
+    css: style.css
+  pdf_document: default
+---
+
+
+
+```{r include=FALSE}
+require(knitr)
+require(mosaic)
+require(DT)
+require(rvest)
+require(xtable)
+require(kable)
+require(XML2)
+
+
+scrpTFRRS <- function(url){
+
+  scraped <- read_html(url)
+
+  test1 <- scraped %>%
+    html_nodes("table") %>%
+    
+    html_table(fill = TRUE)
+
+  events <- html_nodes(scraped, '.custom-table-title')
+  events_txt <- html_text(events)
+  events_txt <- gsub("\n","",events_txt)
+  events_txt <- gsub("\t","",events_txt)
+  events_txt <- gsub(" ","",events_txt)
+
+  names(test1)=events_txt
+  return(test1)
+}
+
+listMerge <- function(list1,list2){
+  names=union(names(list1),names(list2))
+  finalList=list(names)
+  for(i in 1:length(names)){
+    finalList[[names[i]]]=rbind(list1[[names[i]]],list2[[names[i]]])
+  }
+  return(finalList)
+}
+
+genPerfList=function(teams,yearCodes,sex){
+
+  URL=rep(NA,length(teams))
+  teamList = vector(mode = "list", length = length(URL))
+  state=NA
+  for(i in 1:length(URL)){
+    if(teams[i]=="Shawnee_State"){
+      state = "OH"
+    } else if(teams[i]=="Cumberland"){
+      state = "TN"
+    } else if(teams[i]=="Life"){
+      state = "GA"
+    } else {
+      state = "KY"
+    }
+    URL[i]=paste("https://www.tfrrs.org/top_performances_archived/", state, "_college_", sex, "_", teams[i], ".html?list_hnd=", yearCodes[1], "&season_hnd=",yearCodes[2],sep="")
+    teamList[[i]]=scrpTFRRS(URL[i])
+  }
+
+  finalList=listMerge(teamList[[1]],teamList[[2]])
+  for(i in 3:length(URL)){
+    finalList=listMerge(finalList,teamList[[i]])
+  }
+
+  return(finalList)
+}
+
+min2sec=function(time){
+  x=strsplit(time,":")
+  if(length(x[[1]])==2){
+    return(60*as.numeric(x[[1]][1])+as.numeric(x[[1]][2]))
+  } else if(length(x[[1]])==1){
+    return(as.numeric(x[[1]][1]))
+  } else{
+    return(60*60*as.numeric(x[[1]][1])+60*as.numeric(x[[1]][2])+as.numeric(x[[1]][3]))
+  }
+}
+
+sec2min=function(sec){
+    min=floor(sec/60)
+    sec=sec %% 60
+    return(sprintf("%02d:%05.2f", min, sec))
+}
+
+
+```
+
+
+![](site-logo.png)
+
+# Perfomance Lists {.tabset}
+
+Use the tabs to navigate between Indoor and Ourdoor.
+
+<h2>Indoor</h2>
+
+## Indoor 
+
+**Under Construction**
+
+```{r, echo=FALSE, warning=FALSE}
+
+url=c("https://www.tfrrs.org/lists/2856/Mid_South_Conference_Indoor_Performance_List",
+      "https://www.tfrrs.org/lists/2422/Mid_South_Conference_Indoor_Performance_List",
+      "https://www.tfrrs.org/lists/2136/Mid_South_Conference_Indoor_Performance_List",
+      "https://www.tfrrs.org/lists/1920/Mid_South_Conference_Indoor_Performance_List")
+
+
+
+iperfList2020=scrpTFRRS(url[1])
+iperfList2019=scrpTFRRS(url[2])
+iperfList2018=scrpTFRRS(url[3])
+iperfList2017=scrpTFRRS(url[4])
+
+
+iperfList2019=append(iperfList2019, list(x=rep(NA,7)),19)
+iperfList2019=append(iperfList2019, list(y=rep(NA,7)),20)
+iperfList2018=append(iperfList2018, list(x=rep(NA,7)),19)
+iperfList2018=append(iperfList2018, list(y=rep(NA,7)),20)
+iperfList2017=append(iperfList2017, list(x=rep(NA,7)),19)
+iperfList2017=append(iperfList2017, list(y=rep(NA,7)),20)
+
+performanceList <- vector(mode = "list", length = 40)
+
+for(i in 1:length(iperfList2020)){
+  if(i > 22 & i < 29){
+    iperfList2020[[i]]=iperfList2020[[i]][c(1,3)]
+  } else{
+    iperfList2020[[i]]=iperfList2020[[i]][c(1,5)]
+  }
+}
+for(i in 1:length(iperfList2018)){
+  if(i > 22 & i < 29){
+    iperfList2018[[i]]=iperfList2018[[i]][c(1,3)]
+  } else{
+    iperfList2018[[i]]=iperfList2018[[i]][c(1,5)]
+  }
+}
+for(i in 1:length(iperfList2017)){
+  if(i > 22 & i < 29){
+    iperfList2017[[i]]=iperfList2017[[i]][c(1,3)]
+  } else{
+    iperfList2017[[i]]=iperfList2017[[i]][c(1,5)]
+  }
+}
+
+for(i in 1:length(iperfList2019)){
+  if(i > 22 & i < 29){
+    iperfList2019[[i]]=iperfList2019[[i]][c(1,3)]
+  } else{
+    iperfList2019[[i]]=iperfList2019[[i]][c(1,5)]
+  }
+}
+
+for(i in 1:40){
+
+  max.len = max(length(iperfList2020[[i]][[1]]), length(iperfList2019[[i]][[1]]),length(iperfList2018[[i]][[1]]),length(iperfList2017[[i]][[1]]))
+  In2020 = as.data.frame(c(iperfList2020[[i]][[2]], rep(NA, max.len - length(iperfList2020[[i]][[1]]))))
+  In2019 = as.data.frame(c(iperfList2019[[i]][[2]], rep(NA, max.len - length(iperfList2019[[i]][[1]]))))
+  In2018 = as.data.frame(c(iperfList2018[[i]][[2]], rep(NA, max.len - length(iperfList2018[[i]][[1]]))))
+  In2017 = as.data.frame(c(iperfList2017[[i]][[2]], rep(NA, max.len - length(iperfList2017[[i]][[1]]))))
+ 
+  
+   Rank=1:max.len
+  
+    test=data.frame(Rank,In2017[1],In2018[1],In2019[1],In2020[1])
+    
+    names(test)=c("Rank", "2017", "2018", "2019","2020")
+    performanceList[[i]]=test
+}
+
+titles=names(iperfList2020)
+titles=gsub("\\).*", ")", titles)
+```
+
+```{r echo=FALSE, results='asis'}
+for(i in 1:40){
+  
+  final=performanceList[[i]]
+  
+  cat("###", titles[i], "\n")
+  cat("\n")
+  cat("\n")
+  print(xtable(final), type = "html",include.rownames=FALSE)
+  cat("\n")
+  cat("\n")
+  cat("<a href='#top'>Back to top</a>")
+  cat("\n")
+  cat("\n")
+}
+```
+
+<h2>Outdoor</h2>
+
+## Outdoor
+
+
+```{r, echo=FALSE, warning=FALSE}
+
+url=c("https://www.tfrrs.org/lists/2690/Mid_South_Conference_Outdoor_Performance_List/2019/o?gender=f",
+      "https://www.tfrrs.org/lists/2192/Mid_South_Conference_Outdoor_Performance_List/2018/o?gender=f",
+      "https://www.tfrrs.org/lists/2032/Mid_South_Conference_Outdoor_Performance_List/2017/o?gender=f")
+
+
+
+perfList2019=scrpTFRRS(url[1])
+perfList2018=scrpTFRRS(url[2])
+perfList2017=scrpTFRRS(url[3])
+
+men=c("Campbellsville", "Cumberlands","Georgetown_KY","Lindsey_Wilson","Pikeville",
+        "Shawnee_State","St_Catharine")
+women=c("Campbellsville", "Cumberlands","Georgetown_KY","Life", "Lindsey_Wilson","Pikeville",
+      "Shawnee_State","St_Catharine")
+
+yearCodes=c("1552","303")
+
+test=genPerfList(men,yearCodes,"m")
+test2=genPerfList(women,yearCodes,"f")
+
+test[[length(test)+1]]=1:3
+test2[[length(test2)+1]]=1:3
+
+orderM=c(2,3,4,5,6,7,8,length(test),9,20,10,21,11,12,13,22,14,15,16,17,18,19,23)
+orderW=c(2,3,4,5,6,7,8,length(test2),20,9,10,21,11,12,22,23,13,14,15,16,17,18,24)
+
+perfList2015 = vector(mode = "list", length = 46)
+
+countM=1
+countW=1
+for(i in 1:46){
+  if(i %% 2 == 1){
+    perfList2015[[i]]=test[[orderM[countM]]]
+    countM=countM+1
+  } else{
+    perfList2015[[i]]=test2[[orderW[countW]]]
+    countW=countW+1
+  }
+}
+
+yearCodes=c("1683","336")
+
+test=genPerfList(men,yearCodes,"m")
+test2=genPerfList(women,yearCodes,"f")
+
+test[[length(test)+1]]=rep(NA,10)
+test2[[length(test2)+1]]=rep(NA,10)
+
+orderM=c(2,3,4,5,6,7,8,length(test),9,10,11,12,13,14,15,16,17,18,19,20,21,22,23)
+orderW=c(2,3,4,5,6,7,21,length(test2),8,9,10,11,12,13,22,14,15,16,17,18,19,20,2)
+
+perfList2016 = vector(mode = "list", length = 46)
+
+countM=1
+countW=1
+for(i in 1:46){
+  if(i %% 2 == 1){
+    perfList2016[[i]]=test[[orderM[countM]]]
+    countM=countM+1
+  } else{
+    perfList2016[[i]]=test2[[orderW[countW]]]
+    countW=countW+1
+  }
+}
+perfList2016[[8]][1:3,4]=gsub("h","",perfList2016[[8]][1:3,4])
+
+for(i in 1:length(perfList2019)){
+  if(i > 22 & i < 29){
+    perfList2019[[i]]=perfList2019[[i]][c(1,3)]
+  } else{
+    perfList2019[[i]]=perfList2019[[i]][c(1,5)]
+  }
+}
+for(i in 1:length(perfList2018)){
+  if(i > 22 & i < 29){
+    perfList2018[[i]]=perfList2018[[i]][c(1,3)]
+  } else{
+    perfList2018[[i]]=perfList2018[[i]][c(1,5)]
+  }
+}
+for(i in 1:length(perfList2017)){
+  if(i > 22 & i < 29){
+    perfList2017[[i]]=perfList2017[[i]][c(1,3)]
+  } else{
+    perfList2017[[i]]=perfList2017[[i]][c(1,5)]
+  }
+}
+
+for(i in 1:length(perfList2015)){
+  if(i > 22 & i < 29){
+    perfList2015[[i]]=perfList2015[[i]][c(1,2)]
+  } else{
+    perfList2015[[i]]=perfList2015[[i]][c(1,4)]
+  }
+}
+
+for(i in 1:length(perfList2016)){
+  if(i > 22 & i < 29){
+    perfList2016[[i]]=perfList2016[[i]][c(1,2)]
+  } else{
+    perfList2016[[i]]=perfList2016[[i]][c(1,4)]
+  }
+}
+
+perfList2016[[10]][12,2]="4:41.05"
+
+performanceList <- vector(mode = "list", length = 46)
+
+for(i in 1:46){
+
+  max.len = max(length(perfList2019[[i]][[1]]), length(perfList2018[[i]][[1]]),length(perfList2017[[i]][[1]]),length(perfList2015[[i]][[1]]),length(perfList2016[[i]][[1]]))
+  Out2019 = as.data.frame(c(perfList2019[[i]][[2]], rep(NA, max.len - length(perfList2019[[i]][[1]]))))
+  Out2018 = as.data.frame(c(perfList2018[[i]][[2]], rep(NA, max.len - length(perfList2018[[i]][[1]]))))
+  Out2017 = as.data.frame(c(perfList2017[[i]][[2]], rep(NA, max.len - length(perfList2017[[i]][[1]]))))
+  Out2016 = as.data.frame(c(perfList2016[[i]][[2]], rep(NA, max.len - length(perfList2016[[i]][[1]]))))
+  Out2015 = as.data.frame(c(perfList2015[[i]][[2]], rep(NA, max.len - length(perfList2015[[i]][[1]]))))
+  Rank=1:max.len
+
+  test=data.frame(Rank,Out2015[1],Out2016[1],Out2017[1],Out2018[1],Out2019[1])
+  
+  
+  if(i<=4 | i==17 | i == 18 | i == 23 | i == 24 | i == 45 | i == 46){
+    test[,2]=as.data.frame(c(sort(test[,2]), rep(NA, max.len - length(perfList2015[[i]][[1]]))))
+    test[,3]=as.data.frame(c(sort(test[,3]), rep(NA, max.len - length(perfList2016[[i]][[1]]))))
+    Average=apply(test[,4:6],1,mean)
+    Average5=apply(test[,2:6],1,mean)
+  } else if(i > 28 & i < 45){
+    test[,2]=as.numeric(gsub("m","",test[,2]))
+    test[,2]=as.data.frame(c(sort(test[,2],decreasing = TRUE), rep(NA, max.len - length(perfList2015[[i]][[1]]))))
+    test[,3]=as.numeric(gsub("m","",test[,3]))
+    test[,3]=as.data.frame(c(sort(test[,3],decreasing = TRUE), rep(NA, max.len - length(perfList2016[[i]][[1]]))))
+    test[,4]=as.numeric(gsub("m","",test[,4]))
+    test[,5]=as.numeric(gsub("m","",test[,5]))
+    test[,6]=as.numeric(gsub("m","",test[,6]))
+    Average=apply(test[,4:6],1,mean)
+    Average5=apply(test[,2:6],1,mean)
+  } else if(i==15 | i==16){
+    temp=test
+    temp[,2]=gsub("\\(.*","",test[,2])
+    temp[,3]=gsub("\\(.*","",test[,3])
+    temp[,4]=gsub("\\(.*","",test[,4])
+    temp[,5]=gsub("\\(.*","",test[,5])
+    temp[,6]=gsub("\\(.*","",test[,6])
+    temp[,2]=sapply(temp[,2],min2sec)
+    temp[,3]=sapply(temp[,3],min2sec)
+    temp[,4]=sapply(temp[,4],min2sec)
+    temp[,5]=sapply(temp[,5],min2sec)
+    temp[,6]=sapply(temp[,6],min2sec)
+    Average=apply(temp[,4:6],1,mean)
+    Average=sapply(Average,sec2min)
+    Average=na_if(Average, "NA:   NA")
+    Average5=NA
+    
+  } else{
+    temp=test
+    temp[,2]=gsub("\\(.*","",test[,2])
+    temp[,3]=gsub("\\(.*","",test[,3])
+    temp[,4]=gsub("\\(.*","",test[,4])
+    temp[,5]=gsub("\\(.*","",test[,5])
+    temp[,6]=gsub("\\(.*","",test[,6])
+    temp[,2]=sapply(temp[,2],min2sec)
+    temp[,2]=as.data.frame(c(sort(temp[,2]), rep(NA, max.len - length(perfList2015[[i]][[1]]))))
+    test[,2]=sapply(temp[,2],sec2min)
+    test[,2]=na_if(test[,2], "NA:   NA")
+    temp[,3]=sapply(temp[,3],min2sec)
+    temp[,3]=as.data.frame(c(sort(temp[,3]), rep(NA, max.len - length(perfList2016[[i]][[1]]))))
+    test[,3]=sapply(temp[,3],sec2min)
+    test[,3]=na_if(test[,3], "NA:   NA")
+    temp[,4]=sapply(temp[,4],min2sec)
+    temp[,5]=sapply(temp[,5],min2sec)
+    temp[,6]=sapply(temp[,6],min2sec)
+    Average=apply(temp[,4:6],1,mean)
+    Average=sapply(Average,sec2min)
+    Average=na_if(Average, "NA:   NA")
+    Average5=apply(temp[,2:6],1,mean)
+    Average5=sapply(Average5,sec2min)
+    Average5=na_if(Average5, "NA:   NA")
+    
+  }
+  test=data.frame(test,Average,Average5)
+  names(test)=c("Rank","2015","2016", "2017", "2018", "2019","3 Year Average", "5 Year Average")
+  performanceList[[i]]=test
+  
+}
+
+performanceList[[10]][2,3]="04:41.05(1)"
+
+titles=names(perfList2019)
+titles=gsub("\\).*", ")", titles)
+```
+
+```{r echo=FALSE, results='asis'}
+for(i in 1:44){
+  
+  final=performanceList[[i]]
+  
+  cat("###", titles[i], "\n")
+  cat("\n")
+  cat("\n")
+  print(xtable(final), type = "html",include.rownames=FALSE)
+  cat("\n")
+  cat("\n")
+  cat("<a href='#top'>Back to top</a>")
+  cat("\n")
+  cat("\n")
+}
+```
+
+
+
+## Notes
+
+**Indoor lists are still under contruction.**
+
+These marks are pulled directly from the TFRRS website. TFRRS is not set up to select date ranges for performance lists, thus this document includes ALL MEETS competed in during the given season. These are not "pre-conference" performance lists.
+
+2017 was the first season we had TFRRS populate our performance list. The columns for 2017-2019 were taken from the TFRRS generated performance list. For 2015 and 2016, the performance list for each individual team was pulled from TFRRS and meshed together to create the performance list. 
+
+All 5 years include 7 men's teams and 8 women's teams. After the 2016 season, St. Catharine closed and Cumberland Tn started their program in the 2017 season. 
+
+5k Race walk: For 2015 and 2016 the team performance lists generated by TFRRS DO NOT INCLUDE the 5kRW. So to generate the performance list we would have to look at every meet every team competed in to check for RW performances. Chances are the conference meet and the Cumberlands Invite may be the only meets that contested the event. Those two years have been left blank until more research occurs.
+
+"(1)" indicates a conversion from 1 mile to 1500m was applied. Only two instances of a MSC athlete running a 1 mile occurred in 2015 and 2016 combined. TFRRS applied a conversion factor of approx 0.934599625 to the 1 mile to 1500m conversions in 2017-2019. Based on these conversions only one of the two had a mile time that converter ted to a faster 1500m than they had that season using that factor. This SLIGHTLY altered averages but did not alter ranks (5:00.74 -> 4:41.05 was faster than 4:41.23)
